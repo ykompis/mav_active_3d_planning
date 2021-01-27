@@ -362,8 +362,8 @@ class EvalPlotting:
                      " experiments)\nMeans + Std. Deviations (shaded)")
         fig.set_size_inches(15, 10, forward=True)
 
-        save_name = os.path.join(target_dir, folder_name, "SeriesOverview.png")
-        plt.savefig(save_name, dpi=300, format='png', bbox_inches='tight')
+        save_name = os.path.join(target_dir, folder_name, "SeriesOverview.pdf")
+        plt.savefig(save_name, dpi=300, format='pdf', bbox_inches='tight')
         self.writelog("Created graph 'SeriesOverview'.")
         self.eval_log_file.close()
 
@@ -393,8 +393,8 @@ class EvalPlotting:
         if x[-1] >= 300:
             unit = "min"
             x = np.divide(x, 60)
-        meanerr = np.array(data['MeanError'])
-        stddev = np.array(data['StdDevError'])
+        meanerr = np.array(data['MeanError'], dtype=float)
+        stddev = np.array(data['StdDevError'], dtype=float)
         truncated = np.array(data['OutsideTruncation'])
         pointclouds = np.cumsum(np.array(data['NPointclouds'], dtype=float))
         ros_time = np.array(data['RosTime'], dtype=float)

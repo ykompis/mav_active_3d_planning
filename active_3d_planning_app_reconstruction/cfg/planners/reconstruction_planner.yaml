@@ -22,12 +22,12 @@ system_constraints:
   a_max: 1.0
   yaw_rate_max: 1.6
   yaw_accel_max: 1.6
-  collision_radius: 1.0
+  collision_radius: 0.8
 
 trajectory_generator:
   collision_optimistic: false
   bounding_volume_args: "/map_bounding_volume"
-  clearing_radius: 0.0
+  clearing_radius: 0.1
 
   type: "RRTStar"
   all_semgents_feasible: false
@@ -77,15 +77,15 @@ trajectory_evaluator:
       frontier_voxel_weight: 1.0
       new_voxel_weight: 0.0
       min_impact_factor: 0.01
-      ray_angle_x: 0.002454
-      ray_angle_y: 0.002681
+      ray_angle_x: 0.001837
+      ray_angle_y: 0.002022
 
       sensor_model:
         type: "IterativeRayCaster"
         sampling_time: 0.0
         ray_length: 5.0
-        focal_length: 320.0
-        resolution_x: 172 # 640-90/172-30/127-22.5 deg fov
+        focal_length: 455
+        resolution_x: 243 # 640-90/172-30/127-22.5 deg fov
         resolution_y: 480
         downsampling_factor: 5.0
 
@@ -105,4 +105,3 @@ back_tracker:
   sampling_rate: 20.0
   n_rotations: 0
   stack_size: 10
-

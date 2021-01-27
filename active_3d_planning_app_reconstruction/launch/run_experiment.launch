@@ -10,38 +10,38 @@
   <arg name="ray_length" default="5.0"/>
   <arg name="method" default="merged"/>
   <arg name="verbose_voxblox" default="false"/>
-    
+
   <!-- Unreal Routine arguments -->
   <arg name="uecv_mode" default="fast"/>
   <arg name="slowdown" default="0.0"/>
-  <arg name="delay" default="3.0"/>  
-  
+  <arg name="delay" default="5.0"/>
+
   <!-- Unreal Sensor arguments (ground_truth, kinect, gaussian_depth_noise)-->
   <arg name="model_type" default="gaussian_depth_noise"/>
   <arg name="flatten_distance" default="6.0"/>
   <arg name="maximum_distance" default="0.0"/>
-  
+
   <!-- Odometry  arguments (random_walk, ground_truth)-->
   <arg name="use_rovio" default="false"/>
-  <arg name="odom_noise_model" default="random_walk"/>
-  
+  <arg name="odom_noise_model" default="ground_truth"/>
+
   <!--  Planner arguments (can use a single config or compose the planner)-->
   <arg name="use_separate_configs" default="false"/>
   <arg name="planner_config" default="planners/example_config.yaml"/>
   <arg name="verbose_planner" default="true"/>
   <arg name="visualize" default="true"/>
-  
-  <!--  Experiment arguments -->  
+
+  <!--  Experiment arguments -->
   <arg name="experiment_config" default="CityBuilding.yaml"/>
   <arg name="record_data" default="true"/>
   <arg name="record_visualization" default="true"/>
-  <arg name="data_directory" default="/home/user/Documents/Data"/> 
+  <arg name="data_directory" default="/home/user/Documents/Data"/>
   <arg name="data_frequency" default="30.0" />
-  <arg name="time_limit" default="30" />
+  <arg name="time_limit" default="20" />
 
 
   <!-- *** Experiment Execution *** -->
-  
+
   <!-- Setup experiment params, data, nodes -->
   <rosparam command="load" file="$(find active_3d_planning_app_reconstruction)/cfg/experiments/$(arg experiment_config)"/>
 
@@ -65,7 +65,7 @@
       <arg name="enable_logging" value="false" />
       <arg name="z" value="0" />
     </include>
-    
+
     <!-- MPC trajectory tracker (0.0021 sampling time needs to match odom publish rate!)-->
     <node name="mav_nonlinear_mpc" pkg="mav_nonlinear_mpc" type="nonlinear_mpc_node" respawn="true" clear_params="true">
       <remap from="odometry" to="ground_truth/odometry" />
@@ -76,13 +76,13 @@
       <param name="reference_frame" value="world"/>
       <param name="sampling_time" value="0.0021"/>
     </node>
-    
+
     <!-- Rotor input controller -->
     <node name="PID_attitude_controller" pkg="mav_lowlevel_attitude_controller" type="mav_pid_attitude_controller_node" respawn="true" clear_params="true">
       <remap from="odometry" to="ground_truth/odometry" />
       <rosparam file="$(find mav_lowlevel_attitude_controller)/resources/PID_attitude_$(arg mav_name).yaml" />
     </node>
-    
+
     <!-- Odometry: noise model / rovio -->
     <node pkg="rovio" type="rovio_node" name="rovio" output="screen" if="$(arg use_rovio)">
       <param name="filter_config" value="$(find active_3d_planning_app_reconstruction)/cfg/rovio/rovio.info"/>
@@ -97,10 +97,10 @@
       <param name="noise_model" value="$(arg odom_noise_model)" />
       <param name="publish_tf" value="true" />
       <remap from="odometry_in" to="ground_truth/odometry" />
-    </node> 
+    </node>
 
     <!-- static camera transform -->
-    <node pkg="tf" type="static_transform_publisher" name="tf_camera_to_link" args="0 0 0 -0.5 0.5 -0.5 0.5 /camera_link /camera 100"/>  
+    <node pkg="tf" type="static_transform_publisher" name="tf_camera_to_link" args="0 0 0 -0.5 0.5 -0.5 0.5 /camera_link /camera 100"/>
   </group>
 
   <group ns="unreal">
@@ -112,7 +112,7 @@
       <param name="slowdown" value="$(arg slowdown)"/>
       <remap from="odometry" to="/$(arg mav_name)/ground_truth/odometry" />
     </node>
-    
+
     <!-- Unreal sensor model -->
     <node name="unreal_sensor_model" pkg="unreal_cv_ros" type="sensor_model.py" output="screen">
       <param name="camera_params_ns" value="/unreal/unreal_ros_client/camera_params"/>
@@ -134,7 +134,7 @@
       <remap from="ue_raw_in" to="unreal_ros_client/ue_sensor_raw" />
       <remap from="ue_out_in" to="unreal_sensor_model/ue_sensor_out" />
     </node>
-    
+
     <!-- Experiment launcher, data generation-->
     <node name="eval_data_node" pkg="active_3d_planning_app_reconstruction" type="eval_data_node.py" output="screen" required="true">
       <remap from="ue_out_in" to="unreal_sensor_model/ue_sensor_out" />
@@ -149,7 +149,7 @@
       <param name="eval_frequency" value="$(arg data_frequency)" />
       <param name="time_limit" value="$(arg time_limit)" />
     </node>
-    
+
     <!-- Record a rosbag of the visualization-->
     <node pkg="rosbag" type="record" name="rosbag_vis_recorder"
        args="record -o $(arg data_directory)/tmp_bags/tmp_bag /rosout /clock /tf /planner/voxblox_node/mesh /firefly/reference_trajectory /firefly/base_link /planner/trajectory_visualization" if="$(eval arg('record_data') and arg('record_visualization'))"/>
@@ -160,7 +160,7 @@
     <node name="voxblox_node" pkg="voxblox_ros" type="esdf_server" output="screen" args="-alsologtostderr">
       <remap from="pointcloud" to="/unreal/unreal_sensor_model/ue_sensor_out"/>
       <remap from="transform" to="/$(arg mav_name)/rovio/transform" if="$(arg use_rovio)"/>
-      <rosparam command="load" file="$(find active_3d_planning_app_reconstruction)/cfg/voxblox/transforms.yaml" if="$(arg use_rovio)"/> 
+      <rosparam command="load" file="$(find active_3d_planning_app_reconstruction)/cfg/voxblox/transforms.yaml" if="$(arg use_rovio)"/>
       <param name="use_tf_transforms" value="$(eval arg('use_rovio') == false)"/>
       <param name="publish_tsdf_map" value="true" />
       <param name="publish_esdf_map" value="true" />
@@ -173,8 +173,11 @@
       <param name="allow_clear" value="true" />
       <param name="verbose" value="$(arg verbose_voxblox)" />
       <param name="publish_map_incremental" value="true" />
+
+      <param name="publish_pointclouds" value="true"/>
+      <param name="publish_traversable" value="true"/>
     </node>
-    
+
     <!-- Planner -->
     <node name="planner_node" pkg="active_3d_planning_app_reconstruction" type="reconstruction_planner_node" output="screen" >
       <remap from="planner_node/esdf_map_in" to="voxblox_node/esdf_map_out" />
@@ -182,23 +185,23 @@
       <param name="use_tf_transforms" value="false" />
       <param name="tsdf_voxel_size" value="$(arg voxel_size)" />
       <param name="tsdf_voxels_per_side" value="$(arg voxels_per_side)" />
-      <param name="update_mesh_every_n_sec" value="0.0" />   
-      <param name="publish_traversable" value="false" />         
-    
+      <param name="update_mesh_every_n_sec" value="0.0" />
+      <param name="publish_traversable" value="false" />
+
       <remap from="odometry" to="/$(arg mav_name)/ground_truth/odometry" />
       <remap from="command/trajectory" to="/$(arg mav_name)/command/trajectory" />
       <param name="verbose" value="$(arg verbose_planner)" />
       <param name="visualize" value="$(arg visualize)" />
       <param name="log_performance" value="$(arg record_data)" />
-    
+
       <!-- Experiment dependent -->
       <param name="trajectory_evaluator/bounding_volume_args" value="/target_bounding_volume" />
       <param name="trajectory_generator/bounding_volume_args" value="/map_bounding_volume" />
-      
-      <!-- Modular Config -->    
+
+      <!-- Modular Config -->
       <rosparam command="load" file="$(find active_3d_planning_app_reconstruction)/cfg/$(arg planner_config)"/>
-    </node>    
-   
+    </node>
+
  </group>
 
   <!-- RVIZ Visualization -->

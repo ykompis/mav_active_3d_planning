@@ -4,6 +4,7 @@
 import rospy
 from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import String
+from std_msgs.msg import Bool
 from std_srvs.srv import SetBool
 from voxblox_msgs.srv import FilePath
 # Python
@@ -53,6 +54,7 @@ class EvalData:
             self.eval_directory = os.path.join(self.eval_directory, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             os.mkdir(self.eval_directory)
             rospy.set_param(self.ns_planner + "/performance_log_dir", self.eval_directory)
+            rospy.set_param("/firefly/performance_log_dir", self.eval_directory)
             os.mkdir(os.path.join(self.eval_directory, "voxblox_maps"))
             self.eval_data_file = open(os.path.join(self.eval_directory, "voxblox_data.csv"), 'wb')
             self.eval_writer = csv.writer(self.eval_data_file, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL,
@@ -62,8 +64,8 @@ class EvalData:
             self.eval_log_file = open(os.path.join(self.eval_directory, "data_log.txt"), 'a')
 
             # Subscribers, Services
-            self.ue_out_sub = rospy.Subscriber("ue_out_in", PointCloud2, self.ue_out_callback, queue_size=10)
-            self.collision_sub = rospy.Subscriber("collision", String, self.collision_callback, queue_size=10)
+            #self.ue_out_sub = rospy.Subscriber("ue_out_in", PointCloud2, self.ue_out_callback, queue_size=10)
+            self.collision_sub = rospy.Subscriber("/firefly/collision", Bool, self.collision_callback, queue_size=10)
             self.cpu_time_srv = rospy.ServiceProxy(self.ns_planner + "/get_cpu_time", SetBool)
 
             # Finish
@@ -78,15 +80,15 @@ class EvalData:
     def launch_simulation(self):
         rospy.loginfo("Experiment setup: waiting for unreal MAV simulation to setup...")
         # Wait for unreal simulation to setup
-        if self.startup_timeout > 0.0:
-            try:
-                rospy.wait_for_message("unreal_simulation_ready", String, self.startup_timeout)
-            except rospy.ROSException:
-                self.stop_experiment("Simulation startup failed (timeout after " + str(self.startup_timeout) + "s).")
-                return
-        else:
-            rospy.wait_for_message("unreal_simulation_ready", String)
-        rospy.loginfo("Waiting for unreal MAV simulation to setup... done.")
+        # if self.startup_timeout > 0.0:
+        #     try:
+        #         rospy.wait_for_message("unreal_simulation_ready", String, self.startup_timeout)
+        #     except rospy.ROSException:
+        #         self.stop_experiment("Simulation startup failed (timeout after " + str(self.startup_timeout) + "s).")
+        #         return
+        # else:
+        #     rospy.wait_for_message("unreal_simulation_ready", String)
+        # rospy.loginfo("Waiting for unreal MAV simulation to setup... done.")
 
         # Launch planner (by service, every planner needs to advertise this service when ready)
         rospy.loginfo("Waiting for planner to be ready...")
