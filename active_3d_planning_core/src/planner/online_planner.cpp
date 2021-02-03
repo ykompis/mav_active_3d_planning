@@ -134,6 +134,7 @@ namespace active_3d_planning {
     void OnlinePlanner::initializePlanning() {
         // Setup initial trajectory Segment at current location
         target_position_ = current_position_;
+        target_position_.z() += 0.5;
         target_yaw_ = yawFromQuaternion(current_orientation_);
         current_segment_ = std::unique_ptr<TrajectorySegment>(new TrajectorySegment());
         EigenTrajectoryPoint trajectory_point;
