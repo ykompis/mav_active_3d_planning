@@ -5,6 +5,9 @@
 #include <geometry_msgs/Point.h>
 #include <tf/transform_datatypes.h>
 
+#include <pcl_conversions/pcl_conversions.h>
+#include <sensor_msgs/PointCloud2.h>
+
 #include <algorithm>
 #include <string>
 #include <cmath>
@@ -29,6 +32,8 @@ namespace active_3d_planning {
                     "command/trajectory", 10);
             trajectory_vis_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(
                     "trajectory_visualization", 100);
+            fake_freespace_pub_ = nh_.advertise<sensor_msgs::PointCloud2>(
+                    "dense_stereo/freespace_pointcloud", 10);
             odom_sub_ = nh_.subscribe("odometry", 1, &RosPlanner::odomCallback, this);
             get_cpu_time_srv_ = nh_private_.advertiseService("get_cpu_time", &RosPlanner::cpuSrvCallback, this);
 
@@ -62,6 +67,10 @@ namespace active_3d_planning {
         }
 
         void RosPlanner::initializePlanning() {
+
+            // otherwise the planner refuses to start planning
+            publishFakeFreespace();
+
             // setup standard
             OnlinePlanner::initializePlanning();
 
@@ -75,6 +84,34 @@ namespace active_3d_planning {
             cpu_srv_timer_ = std::clock();
             ros_timing_ = ::ros::Time::now();
             perf_log_data_[5] = 0;        // reset count
+
+        }
+
+        void RosPlanner::publishFakeFreespace() {
+          pcl::PointCloud<pcl::PointXYZRGB> freespace_pointcloud;
+          pcl::PointXYZRGB point;
+
+          double r = 1.5; // m
+
+          for (double yaw = 0; yaw < 2*M_PI; yaw+=0.02) {
+            for (double pitch = 0; pitch < M_PI; pitch+=0.02) {
+              pcl::PointXYZRGB point;
+              point.x = r * std::cos(yaw) * std::sin(pitch);
+              point.y = r * std::sin(yaw) * std::sin(pitch);
+              point.z = r * std::cos(pitch);
+              freespace_pointcloud.push_back(point);
+            }
+          }
+
+          for (size_t i = 0; i < 100; i++) {
+            sensor_msgs::PointCloud2 freespace_pointcloud_msg;
+            pcl::toROSMsg(freespace_pointcloud, freespace_pointcloud_msg);
+            freespace_pointcloud_msg.header.stamp = ::ros::Time::now();
+            freespace_pointcloud_msg.header.frame_id = "firefly/vi_sensor/base_link";
+            fake_freespace_pub_.publish(freespace_pointcloud_msg);
+            ::ros::Duration(0.01).sleep();
+          }
+
 
         }
 

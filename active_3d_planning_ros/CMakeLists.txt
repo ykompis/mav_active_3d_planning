@@ -1,7 +1,15 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(active_3d_planning_ros)
 
-find_package(catkin_simple REQUIRED)
+find_package(catkin_simple REQUIRED
+pcl_ros
+sensor_msgs
+)
+find_package(PCL 1.3 REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+
 catkin_simple(ALL_DEPS_REQUIRED)
 
 add_definitions(-std=c++11)
